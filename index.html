@@ -1,12 +1,80 @@
 <!doctype html>
-<html>
+<html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>WineWings</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WineWings — Digital Deck</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background:#0b0b0b; color:#fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .wrap { height:100%; display:grid; grid-template-rows:auto 1fr auto; }
+    header { padding:10px 14px; display:flex; justify-content:space-between; align-items:center; }
+    .brand { font-weight:700; letter-spacing:.3px; }
+    .hint { font-size:12px; opacity:.7; }
+    .stage { display:grid; place-items:center; padding:12px; }
+    img {
+      max-width:min(92vw,520px);
+      max-height:78vh;
+      border-radius:14px;
+      box-shadow:0 12px 40px rgba(0,0,0,.55);
+      background:#111;
+    }
+    footer { padding:12px; display:flex; gap:10px; justify-content:center; }
+    button {
+      border:0; cursor:pointer;
+      padding:12px 14px; border-radius:12px;
+      background:#1b1b1b; color:#fff;
+      font-size:16px; min-width:54px;
+    }
+    button:disabled { opacity:.35; cursor:not-allowed; }
+  </style>
 </head>
 <body>
-  <h1>WineWings</h1>
-  <p>Digital Deck is coming.</p>
+  <div class="wrap">
+    <header>
+      <div class="brand">WineWings</div>
+      <div class="hint" id="counter"></div>
+    </header>
+
+    <main class="stage">
+      <img id="card" alt="Menu card">
+    </main>
+
+    <footer>
+      <button id="prev">◀</button>
+      <button id="next">▶</button>
+    </footer>
+  </div>
+
+  <script>
+    const TOTAL_CARDS = 36;
+
+    const cards = Array.from({ length: TOTAL_CARDS }, (_, i) =>
+      `cards-${String(i + 1).padStart(2, "0")}.jpg`
+    );
+
+    let i = 0;
+    const img = document.getElementById("card");
+    const counter = document.getElementById("counter");
+    const prev = document.getElementById("prev");
+    const next = document.getElementById("next");
+
+    function render() {
+      img.src = "cards/" + cards[i];
+      counter.textContent = `${i + 1} / ${cards.length}`;
+      prev.disabled = i === 0;
+      next.disabled = i === cards.length - 1;
+    }
+
+    prev.onclick = () => { if (i > 0) { i--; render(); } };
+    next.onclick = () => { if (i < cards.length - 1) { i++; render(); } };
+
+    window.onkeydown = e => {
+      if (e.key === "ArrowLeft") prev.click();
+      if (e.key === "ArrowRight") next.click();
+    };
+
+    render();
+  </script>
 </body>
 </html>
