@@ -6,6 +6,13 @@
   <title>WineWings bar · Menu Deck</title>
 
   <style>
+    :root{
+      --topPad: calc(env(safe-area-inset-top, 0px) + 14px);
+      --bottomPad: calc(env(safe-area-inset-bottom, 0px) + 18px);
+      --chromeTop: 44px;   /* место под заголовок */
+      --chromeBottom: 44px;/* место под точки */
+    }
+
     html, body {
       margin: 0;
       padding: 0;
@@ -19,15 +26,19 @@
     /* Заголовок */
     .title {
       position: fixed;
-      top: 12px;
+      top: var(--topPad);
       left: 50%;
       transform: translateX(-50%);
-      font-size: 14px;
+      font-size: 16px;
       letter-spacing: .3px;
-      opacity: .75;
+      opacity: .85;
       z-index: 10;
       pointer-events: none;
       white-space: nowrap;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
     }
 
     /* Колода */
@@ -49,58 +60,79 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      /* чтобы контент не лип к верху/низу и не попадал под заголовок/точки */
+      padding-top: calc(var(--topPad) + var(--chromeTop));
+      padding-bottom: calc(var(--bottomPad) + var(--chromeBottom));
+      box-sizing: border-box;
     }
 
     .card img {
       max-width: 100vw;
-      max-height: 100vh;
+      max-height: 100%;
       object-fit: contain;
     }
 
-    /* Точки-индикаторы */
+    /* Точки */
     .dots {
       position: fixed;
-      bottom: 16px;
+      bottom: var(--bottomPad);
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       gap: 6px;
       z-index: 10;
       pointer-events: none;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
+      opacity: .9;
     }
 
     .dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: rgba(255,255,255,.3);
+      background: rgba(255,255,255,.25);
     }
 
     .dot.active {
-      background: rgba(255,255,255,.9);
+      background: rgba(255,255,255,.95);
+    }
+
+    /* Десктоп-хинт (очень ненавязчиво) */
+    .hint {
+      position: fixed;
+      top: calc(var(--topPad) + 44px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      opacity: .45;
+      z-index: 10;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    @media (hover: none) {
+      .hint { display: none; } /* на телефоне хинт не нужен */
     }
   </style>
 </head>
 
 <body>
+  <div class="title">WineWings bar · Menu Deck</div>
+  <div class="hint">Use mouse wheel / trackpad • ← →</div>
 
-  <!-- Заголовок -->
-  <div class="title">WineWings · Menu Deck</div>
-
-  <!-- Колода -->
   <div class="deck" id="deck"></div>
-
-  <!-- Точки -->
   <div class="dots" id="dots"></div>
 
   <script>
-    /* === НАСТРОЙКА === */
-    const TOTAL_CARDS = 36; // у тебя 36 файлов: cards-01.jpg … cards-36.jpg
+    const TOTAL_CARDS = 36;
 
     const deck = document.getElementById("deck");
     const dotsContainer = document.getElementById("dots");
 
-    /* Создаём карточки */
+    // Создаём карточки
     for (let i = 1; i <= TOTAL_CARDS; i++) {
       const n = String(i).padStart(2, "0");
       const card = document.createElement("div");
@@ -109,28 +141,66 @@
       deck.appendChild(card);
     }
 
-    /* Создаём точки */
+    // Создаём точки
     for (let i = 0; i < TOTAL_CARDS; i++) {
       const d = document.createElement("div");
       d.className = "dot";
       dotsContainer.appendChild(d);
     }
-
     const dots = document.querySelectorAll(".dot");
 
-    function updateDots(index) {
-      dots.forEach((d, i) => d.classList.toggle("active", i === index));
+    let index = 0;
+    let wheelLock = false;
+
+    function updateDots(i) {
+      dots.forEach((d, k) => d.classList.toggle("active", k === i));
     }
 
-    updateDots(0);
-
-    /* Обновление активной точки при свайпе */
-    deck.addEventListener("scroll", () => {
-      const index = Math.round(deck.scrollLeft / window.innerWidth);
+    function scrollToIndex(i) {
+      index = Math.max(0, Math.min(TOTAL_CARDS - 1, i));
+      deck.scrollTo({ left: index * window.innerWidth, behavior: "smooth" });
       updateDots(index);
-    });
-  </script>
+    }
 
+    // Обновление активной точки при ручном свайпе/скролле
+    deck.addEventListener("scroll", () => {
+      const i = Math.round(deck.scrollLeft / window.innerWidth);
+      if (i !== index) {
+        index = i;
+        updateDots(index);
+      }
+    });
+
+    // Клавиши ← →
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") scrollToIndex(index - 1);
+      if (e.key === "ArrowRight") scrollToIndex(index + 1);
+    });
+
+    // ✅ Десктоп: колесо мыши = ровно 1 карточка за раз (без “улёта”)
+    deck.addEventListener("wheel", (e) => {
+      // не трогаем тач-устройства
+      if (!matchMedia("(hover: hover)").matches) return;
+
+      e.preventDefault();
+
+      if (wheelLock) return;
+      wheelLock = true;
+
+      const delta = e.deltaY || e.deltaX;
+      if (delta > 0) scrollToIndex(index + 1);
+      else if (delta < 0) scrollToIndex(index - 1);
+
+      setTimeout(() => wheelLock = false, 280); // анти-ускорение
+    }, { passive: false });
+
+    // При ресайзе фиксируем позицию, чтобы не “съезжало”
+    window.addEventListener("resize", () => {
+      deck.scrollTo({ left: index * window.innerWidth, behavior: "auto" });
+    });
+
+    // старт
+    updateDots(0);
+  </script>
 </body>
 </html>
-
